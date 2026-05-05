@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="RustCards">
+  <meta name="theme-color" content="#CE422B">
+  <title>RustCards</title>
+  <link rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="/style.css">
+  <!-- Inline SVG icons for iOS (no external deps) -->
+  <link rel="apple-touch-icon" href="icon-192.png">
+</head>
+<body>
+
+<div id="install-banner">
+  <span>Add RustCards to your Home Screen</span>
+  <button id="btn-install">Add</button>
+</div>
+
+<header>
+  <div>
+    <h1>🦀 RustCards</h1>
+    <div id="category-label">Loading…</div>
+  </div>
+</header>
+
+<div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+<div id="counter"></div>
+
+<div id="filter-bar">
+  <button class="filter-btn active" data-filter="all">All (65)</button>
+  <button class="filter-btn" data-filter="learning">Still Learning</button>
+  <button class="filter-btn" data-filter="got-it">Got It</button>
+</div>
+
+<div id="card-area">
+  <div class="card-wrap" id="card-wrap">
+    <div class="card-face front">
+      <div class="hint">Tap to flip</div>
+      <div class="body" id="front-body"></div>
+    </div>
+    <div class="card-face back">
+      <div class="hint">Swipe right = got it &nbsp;·&nbsp; Swipe left = again</div>
+      <div class="body" id="back-body"></div>
+    </div>
+  </div>
+</div>
+
+<div id="empty-state">
+  <p>🎉 All done!</p>
+  <small id="empty-msg">You've gone through all the cards in this filter.</small>
+  <button class="tool-btn" onclick="restart()" style="margin-top:8px">Go Again</button>
+</div>
+
+<div id="actions">
+  <button class="action-btn" id="btn-again">🔁 Again</button>
+  <button class="action-btn" id="btn-got-it">✓ Got It</button>
+</div>
+
+<div id="toolbar">
+  <button class="tool-btn" id="btn-shuffle">Shuffle</button>
+  <button class="tool-btn" id="btn-reset">Reset Progress</button>
+</div>
+
+<div id="toast"></div>
+
+<script src="/cards.js"></script>
+<script src="/app.js"></script>
+</body>
+</html>
