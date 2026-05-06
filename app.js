@@ -1,3 +1,39 @@
+// ─── Haptic engine ─────────────────────────────────────────────────────────
+const Haptic = {
+  _v: (p) => { try { navigator.vibrate?.(p); } catch (_) {} },
+  tap:     function() { this._v(8); },
+  soft:    function() { this._v(5); },
+  medium:  function() { this._v(16); },
+  heavy:   function() { this._v(30); },
+  select:  function() { this._v(6); },
+  success: function() { this._v([10, 50, 15]); },
+  error:   function() { this._v([35, 25, 35]); },
+};
+
+// ─── Motion / tilt engine ───────────────────────────────────────────────────
+const Motion = (() => {
+  const cbs = [];
+  let _g = 0, _b = 0, _active = false;
+  const handle = (e) => { _g = e.gamma || 0; _b = e.beta || 0; cbs.forEach(f => f(_g, _b)); };
+  const start = async () => {
+    if (typeof DeviceOrientationEvent?.requestPermission === 'function') {
+      if (await DeviceOrientationEvent.requestPermission() !== 'granted') return false;
+    }
+    window.addEventListener('deviceorientation', handle, { passive: true });
+    _active = true;
+    return true;
+  };
+  return {
+    onTilt: (fn) => cbs.push(fn),
+    start,
+    get gamma() { return _g; },
+    get beta() { return _b; },
+    get active() { return _active; },
+    needsPermission: () => typeof DeviceOrientationEvent?.requestPermission === 'function',
+    isMobile: () => 'ontouchstart' in window,
+  };
+})();
+
 'use strict';
 
 const LS_KEY = 'rustcards_got_it';
@@ -81,6 +117,7 @@ function updateCounter() {
 }
 
 function flipCard() {
+  Haptic.tap();
   if (!deck.length || current >= deck.length) return;
   flipped = !flipped;
   cardWrap.classList.toggle('flipped', flipped);
@@ -88,6 +125,7 @@ function flipCard() {
 
 function advance(dir) {
   if (!deck.length || current >= deck.length) return;
+  if (dir === 'got-it') { Haptic.success(); } else { Haptic.soft(); }
   btnAgain.disabled = btnGotIt.disabled = true;
 
   const got = gotItSet();
@@ -126,6 +164,7 @@ function setFilter(f) {
 }
 
 function restart() {
+  Haptic.medium();
   deck = buildDeck();
   current = 0;
   showCard();
@@ -138,6 +177,7 @@ btnAgain.addEventListener('click',  () => advance('again'));
 btnGotIt.addEventListener('click',  () => advance('got-it'));
 
 document.getElementById('btn-shuffle').addEventListener('click', () => {
+  Haptic.select();
   deck = buildDeck();
   current = 0;
   showCard();
@@ -194,3 +234,43 @@ document.getElementById('btn-install').addEventListener('click', async () => {
 // Boot
 deck = buildDeck();
 showCard();
+
+// ─── Tilt-to-peek ──────────────────────────────────────────────────────────
+// Lean phone top away from you (beta increases from upright ~90° baseline)
+// to temporarily reveal the card answer without marking it.
+let _betaBase = null;
+let _peeking = false;
+
+Motion.onTilt((_gamma, beta) => {
+  if (_betaBase === null) { _betaBase = beta; return; }
+  const dBeta = beta - _betaBase;
+  // Tilt top forward ~18° = peek
+  if (!flipped && dBeta > 18 && !_peeking) {
+    _peeking = true;
+    cardWrap.classList.add('flipped');
+    Haptic.soft();
+  } else if (dBeta <= 12 && _peeking) {
+    _peeking = false;
+    if (!flipped) cardWrap.classList.remove('flipped');
+  }
+});
+
+// Motion permission button (iOS 13+ only)
+function _addMotionBtn() {
+  const btn = document.createElement('button');
+  btn.textContent = '↺ tilt';
+  btn.setAttribute('aria-label', 'Enable tilt controls');
+  btn.style.cssText = 'position:fixed;bottom:16px;right:16px;z-index:9999;background:rgba(0,0,0,0.8);color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.25);border-radius:20px;padding:7px 14px;font-size:11px;font-family:monospace;letter-spacing:.05em;cursor:pointer;backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);';
+  document.body.appendChild(btn);
+  btn.addEventListener('click', async () => {
+    if (await Motion.start()) btn.remove();
+  });
+}
+
+if (Motion.isMobile()) {
+  if (Motion.needsPermission()) {
+    _addMotionBtn();
+  } else {
+    Motion.start();
+  }
+}
